@@ -1,0 +1,91 @@
+---
+title: "Practical machine learning"
+author: "Stanislav Tarasov"
+date: "29 01 2022"
+output: html_document
+---
+
+### Course project on practical machine learning
+
+## Summary
+
+In this course project, we will explore data collected using body-mounted accelerometers. Our task is to determine the correctness of the dumbbell row exercise and the correct classification of errors in this exercise.The result of the work is the construction of a model using the random forest method, which is able to correctly classify the result of the dumbbell row exercise in 20 out of 20 trials.
+
+## Data analysis
+
+First, let's determine which R packages we need to work with and download them. These are the caret package and the randomForest package. In my work, I will use the randomForest package due to the problem that the train function of the caret package does not always work correctly with the "rf" method.
+
+```{r}
+library(caret)
+library(randomForest)
+```
+
+Set the value for set.seed()
+```{r}
+set.seed(1234)
+```
+
+Let's read the data from the training dataset. Set the value of na.strings appropriately so that all NAs and data voids are read as NAs.
+```{r}
+datatrain <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", na.strings = c("NA", ""))
+dim(datatrain)
+str(datatrain)
+```
+
+Let's look at the data and see that the first 6 variables do not carry any meaning for the future model. Let's create a new dataset without the first six variables.
+```{r}
+training <- datatrain[,-(1:6)]
+```
+
+Now let's remove from the set the variables that completely contain NA.
+```{r}
+training<-training[,colSums(is.na(training)) == 0]
+```
+
+Let's look at the data
+```{r}
+anyNA(training)
+dim(training)
+```
+
+Let's create a training and test set from the processed training set.
+```{r}
+inTrain <- createDataPartition(y = training$classe, p = 0.7, list = FALSE)
+training_train <- training[inTrain, ]
+testing_train <- training[-inTrain, ]
+```
+
+Now, in order to avoid errors when creating a confusion matrix, let's change the type of the desired class variable to factor.
+```{r}
+training_train$classe <- as.factor(training_train$classe)
+testing_train$classe <- as.factor(testing_train$classe)
+```
+
+Let's train the model using the randomForest function, specifying the target variable - classe, as well as all the others as predictors.
+```{r}
+modFit <- randomForest(classe ~., data= training_train, method = "classification")
+modFit
+```
+
+Using our modFit model, let's predict the values of the classe variable on the test set of our training set. And look at the confusion matrix.
+```{r}
+pred <- predict(modFit, testing_train)
+confusionMatrix(pred, testing_train$classe)
+```
+
+Now let's read the course test data set, process it in the same way as the training set. And we will predict the class values for the test data.
+```{r}
+datatest <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", na.strings = c("NA", ""))
+testing_test <- datatest[,colSums(is.na(datatest)) == 0]
+testing_test <- testing_test[, -(1:6)]
+pred_test <- predict(modFit, testing_test)
+pred_test
+```
+
+## Outcome
+
+We have model prediction results for all 20 cases.
+Checking the results shows that the model correctly classifies the execution result in 20 out of 20 cases.
+
+
+
